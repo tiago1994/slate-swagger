@@ -21,6 +21,8 @@ import {
 import { withHistory } from "slate-history";
 import { css } from "@emotion/css";
 import SwaggerUI from "swagger-ui-react";
+import imageExtensions from "image-extensions";
+import isUrl from "is-url";
 import { Button, Icon, Toolbar } from "./components";
 
 const HOTKEYS = {
@@ -120,6 +122,13 @@ const withImages = (editor) => {
   };
 
   return editor;
+};
+
+const isImageUrl = (url) => {
+  if (!url) return false;
+  if (!isUrl(url)) return false;
+  const ext = new URL(url).pathname.split(".").pop();
+  return imageExtensions.includes(ext);
 };
 
 const ButtonImage = ({ icon }) => {
