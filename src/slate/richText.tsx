@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React, { useCallback, useMemo } from "react";
 import isHotkey from "is-hotkey";
+import { jsx } from "slate-hyperscript";
 import {
   Editable,
   withReact,
@@ -39,7 +40,8 @@ const RichText = () => {
   const renderElement = useCallback((props) => <Element {...props} />, []);
   const renderLeaf = useCallback((props) => <Leaf {...props} />, []);
   const editor = useMemo(
-    () => withEmbeds(withImages(withHistory(withReact(createEditor())))),
+    () =>
+      withHtml(withEmbeds(withImages(withHistory(withReact(createEditor()))))),
     []
   );
 
@@ -50,8 +52,12 @@ const RichText = () => {
         <MarkButton format="italic" icon="format_italic" />
         <MarkButton format="underline" icon="format_underlined" />
         <MarkButton format="code" icon="code" />
-        <BlockButton format="heading-one" icon="looks_one" />
-        <BlockButton format="heading-two" icon="looks_two" />
+        <FontSizeButton format="heading-one" text="H1" />
+        <FontSizeButton format="heading-two" text="H2" />
+        <FontSizeButton format="heading-three" text="H3" />
+        <FontSizeButton format="heading-four" text="H4" />
+        <FontSizeButton format="heading-five" text="H5" />
+        <FontSizeButton format="heading-six" text="H6" />
         <BlockButton format="block-quote" icon="format_quote" />
         <BlockButton format="numbered-list" icon="format_list_numbered" />
         <BlockButton format="bulleted-list" icon="format_list_bulleted" />
@@ -122,6 +128,104 @@ const withImages = (editor) => {
   };
 
   return editor;
+};
+
+const withHtml = (editor) => {
+  const { insertData, isInline, isVoid } = editor;
+
+  editor.isInline = (element) => {
+    return element.type === "link" ? true : isInline(element);
+  };
+
+  editor.isVoid = (element) => {
+    return element.type === "image" ? true : isVoid(element);
+  };
+
+  editor.insertData = (data) => {
+    const html = data.getData("text/html");
+
+    if (html) {
+      const parsed = new DOMParser().parseFromString(html, "text/html");
+      const fragment = deserialize(parsed.body);
+      Transforms.insertFragment(editor, fragment);
+      return;
+    }
+
+    insertData(data);
+  };
+
+  return editor;
+};
+
+const ELEMENT_TAGS = {
+  A: (el) => ({ type: "link", url: el.getAttribute("href") }),
+  BLOCKQUOTE: () => ({ type: "quote" }),
+  H1: () => ({ type: "heading-one" }),
+  H2: () => ({ type: "heading-two" }),
+  H3: () => ({ type: "heading-three" }),
+  H4: () => ({ type: "heading-four" }),
+  H5: () => ({ type: "heading-five" }),
+  H6: () => ({ type: "heading-six" }),
+  IMG: (el) => ({ type: "image", url: el.getAttribute("src") }),
+  LI: () => ({ type: "list-item" }),
+  OL: () => ({ type: "numbered-list" }),
+  P: () => ({ type: "paragraph" }),
+  PRE: () => ({ type: "code" }),
+  UL: () => ({ type: "bulleted-list" }),
+};
+
+// COMPAT: `B` is omitted here because Google Docs uses `<b>` in weird ways.
+const TEXT_TAGS = {
+  CODE: () => ({ code: true }),
+  DEL: () => ({ strikethrough: true }),
+  EM: () => ({ italic: true }),
+  I: () => ({ italic: true }),
+  S: () => ({ strikethrough: true }),
+  STRONG: () => ({ bold: true }),
+  U: () => ({ underline: true }),
+};
+
+export const deserialize = (el) => {
+  if (el.nodeType === 3) {
+    return el.textContent;
+  } else if (el.nodeType !== 1) {
+    return null;
+  } else if (el.nodeName === "BR") {
+    return "\n";
+  }
+
+  const { nodeName } = el;
+  let parent = el;
+
+  if (
+    nodeName === "PRE" &&
+    el.childNodes[0] &&
+    el.childNodes[0].nodeName === "CODE"
+  ) {
+    parent = el.childNodes[0];
+  }
+  let children = Array.from(parent.childNodes).map(deserialize).flat();
+
+  if (children.length === 0) {
+    children = [{ text: "" }];
+  }
+
+  if (el.nodeName === "BODY") {
+    return jsx("fragment", {}, children);
+  }
+
+  if (ELEMENT_TAGS[nodeName]) {
+    const attrs = ELEMENT_TAGS[nodeName](el);
+    console.log("attrs", attrs);
+    return jsx("element", attrs, children);
+  }
+
+  if (TEXT_TAGS[nodeName]) {
+    const attrs = TEXT_TAGS[nodeName](el);
+    return children.map((child) => jsx("text", attrs, child));
+  }
+
+  return children;
 };
 
 const isImageUrl = (url) => {
@@ -273,6 +377,30 @@ const Element = (props) => {
           {children}
         </h2>
       );
+    case "heading-three":
+      return (
+        <h3 style={style} {...attributes}>
+          {children}
+        </h3>
+      );
+    case "heading-four":
+      return (
+        <h4 style={style} {...attributes}>
+          {children}
+        </h4>
+      );
+    case "heading-five":
+      return (
+        <h5 style={style} {...attributes}>
+          {children}
+        </h5>
+      );
+    case "heading-six":
+      return (
+        <h6 style={style} {...attributes}>
+          {children}
+        </h6>
+      );
     case "list-item":
       return (
         <li style={style} {...attributes}>
@@ -284,6 +412,12 @@ const Element = (props) => {
         <ol style={style} {...attributes}>
           {children}
         </ol>
+      );
+    case "link":
+      return (
+        <a href={element.url} {...attributes}>
+          {children}
+        </a>
       );
     case "swagger":
       return <Swagger {...props} />;
@@ -409,6 +543,25 @@ const BlockButton = ({ format, icon }) => {
       }}
     >
       <Icon>{icon}</Icon>
+    </Button>
+  );
+};
+
+const FontSizeButton = ({ format, text }) => {
+  const editor = useSlate();
+  return (
+    <Button
+      active={isBlockActive(
+        editor,
+        format,
+        TEXT_ALIGN_TYPES.includes(format) ? "align" : "type"
+      )}
+      onMouseDown={(event) => {
+        event.preventDefault();
+        toggleBlock(editor, format);
+      }}
+    >
+      {text}
     </Button>
   );
 };
