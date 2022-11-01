@@ -48,25 +48,57 @@ const RichText = () => {
   return (
     <Slate editor={editor} value={initialValue}>
       <Toolbar>
-        <MarkButton format="bold" icon="format_bold" />
-        <MarkButton format="italic" icon="format_italic" />
-        <MarkButton format="underline" icon="format_underlined" />
-        <MarkButton format="code" icon="code" />
-        <FontSizeButton format="heading-one" text="H1" />
-        <FontSizeButton format="heading-two" text="H2" />
-        <FontSizeButton format="heading-three" text="H3" />
-        <FontSizeButton format="heading-four" text="H4" />
-        <FontSizeButton format="heading-five" text="H5" />
-        <FontSizeButton format="heading-six" text="H6" />
-        <BlockButton format="block-quote" icon="format_quote" />
-        <BlockButton format="numbered-list" icon="format_list_numbered" />
-        <BlockButton format="bulleted-list" icon="format_list_bulleted" />
-        <BlockButton format="left" icon="format_align_left" />
-        <BlockButton format="center" icon="format_align_center" />
-        <BlockButton format="right" icon="format_align_right" />
-        <BlockButton format="justify" icon="format_align_justify" />
-        <ButtonImage icon="image" />
-        <ButtonSwagger icon="webhook" />
+        <MarkButton format="bold" icon="format_bold" title="Bold" />
+        <MarkButton format="italic" icon="format_italic" title="Italic" />
+        <MarkButton
+          format="underline"
+          icon="format_underlined"
+          title="Underlined"
+        />
+        <MarkButton format="code" icon="code" title="Code" />
+        <FontSizeButton format="heading-one" text="H1" title="H1" />
+        <FontSizeButton format="heading-two" text="H2" title="H2" />
+        <FontSizeButton format="heading-three" text="H3" title="H3" />
+        <FontSizeButton format="heading-four" text="H4" title="H4" />
+        <FontSizeButton format="heading-five" text="H5" title="H5" />
+        <FontSizeButton format="heading-six" text="H6" title="H6" />
+        <BlockButton
+          format="block-quote"
+          icon="format_quote"
+          title="Format Quote"
+        />
+        <BlockButton
+          format="numbered-list"
+          icon="format_list_numbered"
+          title="List Numbered"
+        />
+        <BlockButton
+          format="bulleted-list"
+          icon="format_list_bulleted"
+          title="List Bulleted"
+        />
+        <BlockButton
+          format="left"
+          icon="format_align_left"
+          title="Align Left"
+        />
+        <BlockButton
+          format="center"
+          icon="format_align_center"
+          title="Align Center"
+        />
+        <BlockButton
+          format="right"
+          icon="format_align_right"
+          title="Align Right"
+        />
+        <BlockButton
+          format="justify"
+          icon="format_align_justify"
+          title="Align Justify"
+        />
+        <ButtonImage icon="image" title="Image" />
+        <ButtonSwagger icon="webhook" title="Swagger" />
       </Toolbar>
       <Editable
         renderElement={renderElement}
@@ -174,7 +206,6 @@ const ELEMENT_TAGS = {
   UL: () => ({ type: "bulleted-list" }),
 };
 
-// COMPAT: `B` is omitted here because Google Docs uses `<b>` in weird ways.
 const TEXT_TAGS = {
   CODE: () => ({ code: true }),
   DEL: () => ({ strikethrough: true }),
@@ -235,7 +266,7 @@ const isImageUrl = (url) => {
   return imageExtensions.includes(ext);
 };
 
-const ButtonImage = ({ icon }) => {
+const ButtonImage = ({ icon, title }) => {
   const editor = useSlateStatic();
 
   return (
@@ -247,13 +278,14 @@ const ButtonImage = ({ icon }) => {
         );
         url && insertImage(editor, url);
       }}
+      title={title}
     >
       <Icon>{icon}</Icon>
     </Button>
   );
 };
 
-const ButtonSwagger = ({ icon }) => {
+const ButtonSwagger = ({ icon, title }) => {
   const editor = useSlateStatic();
 
   return (
@@ -265,6 +297,7 @@ const ButtonSwagger = ({ icon }) => {
         );
         url && insertSwagger(editor, url);
       }}
+      title={title}
     >
       <Icon>{icon}</Icon>
     </Button>
@@ -528,7 +561,7 @@ const Leaf = ({ attributes, children, leaf }) => {
   return <span {...attributes}>{children}</span>;
 };
 
-const BlockButton = ({ format, icon }) => {
+const BlockButton = ({ format, icon, title }) => {
   const editor = useSlate();
   return (
     <Button
@@ -541,13 +574,14 @@ const BlockButton = ({ format, icon }) => {
         event.preventDefault();
         toggleBlock(editor, format);
       }}
+      title={title}
     >
       <Icon>{icon}</Icon>
     </Button>
   );
 };
 
-const FontSizeButton = ({ format, text }) => {
+const FontSizeButton = ({ format, text, title }) => {
   const editor = useSlate();
   return (
     <Button
@@ -560,13 +594,14 @@ const FontSizeButton = ({ format, text }) => {
         event.preventDefault();
         toggleBlock(editor, format);
       }}
+      title={title}
     >
       {text}
     </Button>
   );
 };
 
-const MarkButton = ({ format, icon }) => {
+const MarkButton = ({ format, icon, title }) => {
   const editor = useSlate();
   return (
     <Button
@@ -575,6 +610,7 @@ const MarkButton = ({ format, icon }) => {
         event.preventDefault();
         toggleMark(editor, format);
       }}
+      title={title}
     >
       <Icon>{icon}</Icon>
     </Button>
